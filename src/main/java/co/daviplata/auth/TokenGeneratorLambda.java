@@ -4,9 +4,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
@@ -15,9 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 public class TokenGeneratorLambda implements RequestHandler<Map<String, Object>, Map<String, Object>> {
@@ -25,17 +20,19 @@ public class TokenGeneratorLambda implements RequestHandler<Map<String, Object>,
 	private static final String ISSUER = "https://auth.daviplata.com";
 	private static final String KID = "daviplata-key-001";
 	private static final ObjectMapper mapper = new ObjectMapper();
+	private String env = "lab";
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> handleRequest(Map<String, Object> event, Context context) {
+		System.out.println(event);
 		try {
 			Map<String, Object> requestContext = (Map<String, Object>) event.get("requestContext");
 			Map<String, Object> http = (Map<String, Object>) requestContext.get("http");
 			String path = ((String) http.get("path")).toLowerCase();
 			String method = ((String) http.get("method")).toUpperCase();
 
-			if (path.equals("/oauth2/token") && method.equals("POST")) {
+			if (path.equals("/" + env + "/oauth2/token") && method.equals("POST")) {
 				return generateToken(event);
 			} else {
 				return response(404, Map.of("error", "Not found"));
@@ -46,6 +43,7 @@ public class TokenGeneratorLambda implements RequestHandler<Map<String, Object>,
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> generateToken(Map<String, Object> event) throws Exception {
 		Map<String, String> headers = (Map<String, String>) event.get("headers");
 		String authHeader = headers.getOrDefault("authorization", headers.getOrDefault("Authorization", ""));

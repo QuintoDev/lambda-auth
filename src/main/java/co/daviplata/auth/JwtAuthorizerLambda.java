@@ -33,14 +33,12 @@ public class JwtAuthorizerLambda implements RequestHandler<Map<String, Object>, 
 			}
 
 			if (tokenRaw == null || !tokenRaw.startsWith("Bearer ")) {
-				System.out.println("Authorization header missing or malformed");
-				return generatePolicy("unauthorized", "Deny", event.getOrDefault("methodArn", "*").toString());
+			    System.out.println("Authorization header missing or malformed");
+			    throw new RuntimeException("Unauthorized");
 			}
 
-			// 2. Extraer método ARN
 			String methodArn = event.getOrDefault("methodArn", "*").toString();
 
-			// 3. Validar JWT
 			String token = tokenRaw.replace("Bearer ", "").trim();
 			Algorithm algorithm = Algorithm.RSA256(loadPublicKey(), null);
 			JWTVerifier verifier = JWT.require(algorithm).withIssuer(ISSUER).withAudience(AUDIENCE).build();
@@ -51,8 +49,8 @@ public class JwtAuthorizerLambda implements RequestHandler<Map<String, Object>, 
 			return generatePolicy(jwt.getSubject(), "Allow", methodArn);
 
 		} catch (JWTVerificationException e) {
-			System.out.println("Token inválido: " + e.getMessage());
-			return generatePolicy("unauthorized", "Deny", event.getOrDefault("methodArn", "*").toString());
+		    System.out.println("Token inválido: " + e.getMessage());
+		    throw new RuntimeException("Unauthorized");
 
 		} catch (Exception e) {
 			System.out.println("ERROR FATAL: " + e.getMessage());
